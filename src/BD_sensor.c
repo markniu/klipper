@@ -1,10 +1,15 @@
 #include "autoconf.h" // CONFIG_MACH_AVR
 #include "basecmd.h" // oid_alloc
+
+#include<string.h>
+#include <stdlib.h>
+
 #include "board/gpio.h" // gpio_out_write
 #include "board/irq.h" // irq_poll
 #include "board/misc.h" // timer_from_us
 #include "command.h" // DECL_COMMAND
 #include "sched.h" // DECL_SHUTDOWN
+
 
 
 
@@ -30,7 +35,7 @@ enum {
 	AX_HAVE_START = 1<<0, AX_RUNNING = 1<<1, AX_PENDING = 1<<2,
 };
 
-static struct task_wake bdsensor_wake;
+
 uint16_t BD_Data=0;
 uint16_t BD_read_flag=1018,BD_read_lock=0;
 uint16_t BD_i2c_read(void);
@@ -389,9 +394,9 @@ command_I2C_BD_send(uint32_t *args)
 	//uint8_t data_len = args[1];
 	//uint8_t *data = command_decode_ptr(args[2]);
 	//spidev_transfer(spi, 0, data_len, data);*/
-	uint8_t oid = args[0];
+//	uint8_t oid = args[0];
 	
-	int addr=atoi(args[2]);
+	int addr=atoi((char *)args[2]);
 	BD_read_flag=addr;
 	if(addr>1021)
 		return;
@@ -411,21 +416,11 @@ DECL_COMMAND(command_I2C_BD_send, "I2C_BD_send oid=%c data=%*s");
 
 
 
-// Event handler that wakes adxl345_task() periodically
-static uint_fast8_t
-bdsensor_event(struct timer *timer)
-{
-	struct bdsensor *ax = container_of(timer, struct bdsensor, timer);
-	ax->flags |= AX_PENDING;
-	sched_wake_task(&bdsensor_wake);
-	return SF_DONE;
-}
-
 void
 command_config_I2C_BD(uint32_t *args)
 {
     BD_i2c_init(args[1],args[2],args[3]);
-    uint8_t mode = args[4];
+   // uint8_t mode = args[4];
 	
 /*	struct bdsensor *ax = oid_alloc(args[0], command_config_I2C_BD
 									   , sizeof(*ax));
@@ -447,38 +442,6 @@ DECL_COMMAND(command_config_I2C_BD,
 
 
 
- // Helper code to reschedule the bdsensor_event() timer
- static void
- bdsensor_reschedule_timer(struct bdsensor *ax)
- {
-	 irq_disable();
-	 ax->timer.waketime = timer_read_time() + ax->rest_ticks;
-	 sched_add_timer(&ax->timer);
-	 irq_enable();
- }
- 
-
- // Startup measurements
- static void
- bdsensor_start(struct bdsensor *ax, uint8_t oid)
- {
-	 sched_del_timer(&ax->timer);
-	 ax->flags = AX_RUNNING;
-	 
-
-	 bdsensor_reschedule_timer(ax);
- }
- 
- // End measurements
- static void
- bdsensor_stop(struct bdsensor *ax, uint8_t oid)
- {
-	 // Disable measurements
-	 sched_del_timer(&ax->timer);
-	 ax->flags = 0;
-
- }
-
 
  void
  bd_sensor_task(void)
@@ -486,8 +449,8 @@ DECL_COMMAND(command_config_I2C_BD,
 	// if (!sched_check_wake(&bdsensor_wake))
 	//	 return;
 	
-	 uint8_t oid;
-	 struct bdsensor *ax;
+	// uint8_t oid;
+	// struct bdsensor *ax;
 	 if(BD_read_flag!=1018)
 		return;
 
