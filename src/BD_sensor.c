@@ -398,7 +398,7 @@ command_I2C_BD_send(uint32_t *args)
 	
 	int addr=atoi((char *)args[2]);
 	BD_read_flag=addr;
-	if(addr>1021)
+	if(addr>1021||addr==1015)
 		return;
 	//output("mcuoid=%c i2cwrite=%u",oid, addr);
 	
