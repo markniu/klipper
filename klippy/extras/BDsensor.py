@@ -266,7 +266,8 @@ class BDsensorEndstopWrapper:
                     gcmd.respond_raw(res)
                     break
         
-        if  CMD_BD == -2:                           
+        if  CMD_BD == -2:    
+            self.bd_sensor.I2C_BD_send("1015")#1015 // // read distance data
             pr = self.I2C_BD_receive_cmd.send([self.oid, "32"])
             intd=int(pr['response'])
             strd=str(intd)
