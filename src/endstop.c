@@ -27,7 +27,7 @@ static uint_fast8_t endstop_oversample_event(struct timer *t);
 uint8_t read_endstop_pin(struct endstop *e)
 {
 	uint8_t state_e=0;
-	if(e->type==2)
+	if(e->type==2)// for Bed Distance sensor 
 	{
 		uint16_t tm=Get_Distane_data();
 		state_e=(tm>=0.01)?0:1;
