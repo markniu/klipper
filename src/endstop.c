@@ -34,7 +34,7 @@ uint8_t read_endstop_pin(struct endstop *e)
 	}
 	else	
 		state_e=gpio_in_read(e->pin);
-return state_e;
+	return state_e;
 }
 
 // Timer callback for an end stop
@@ -82,9 +82,7 @@ command_config_endstop(uint32_t *args)
 {
     struct endstop *e = oid_alloc(args[0], command_config_endstop, sizeof(*e));
     e->pin = gpio_in_setup(args[1], args[2]);
-	e->type = args[2];
-	// output("e->type:%c\n", e->type);
-	
+	e->type = args[2];	
 }
 DECL_COMMAND(command_config_endstop, "config_endstop oid=%c pin=%c pull_up=%c");
 
@@ -119,17 +117,14 @@ void
 command_endstop_query_state(uint32_t *args)
 {
     uint8_t oid = args[0];
-	int state_e=0;
     struct endstop *e = oid_lookup(oid, command_config_endstop);
 
     irq_disable();
     uint8_t eflags = e->flags;
     uint32_t nextwake = e->nextwake;
     irq_enable();
-	//output("mcuoid=%c pin=%c y:%c ", oid, gpio_in_read(e->pin),e->type );
-	
-	state_e=read_endstop_pin(e);//
+
     sendf("endstop_state oid=%c homing=%c next_clock=%u pin_value=%c"
-          , oid, !!(eflags & ESF_HOMING), nextwake, state_e);
+          , oid, !!(eflags & ESF_HOMING), nextwake, read_endstop_pin(e));
 }
 DECL_COMMAND(command_endstop_query_state, "endstop_query_state oid=%c");

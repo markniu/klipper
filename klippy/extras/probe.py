@@ -48,10 +48,13 @@ class PrinterProbe:
                                                  minval=0.)
         self.samples_retries = config.getint('samples_tolerance_retries', 0,
                                              minval=0)
-                                             
+        #for Bed Distance Sensor                                     
+        self.BD_sensor = config.get('sda_pin', None)                                       
         self.mcu =self.mcu_probe.get_mcu()
         self.oid = self.mcu.create_oid()
-        self.cmd_queue = self.mcu.alloc_command_queue()                            
+        self.cmd_queue = self.mcu.alloc_command_queue()  
+        self.I2C_BD_send_cmd3 = None
+        self.I2C_BD_receive_cmd3 = None
         self.mcu.register_config_callback(self.build_config)
         
         # Register z_virtual_endstop pin
@@ -81,12 +84,13 @@ class PrinterProbe:
                                     self.cmd_Z_OFFSET_APPLY_PROBE,
                                     desc=self.cmd_Z_OFFSET_APPLY_PROBE_help)
         
-    def build_config(self):      
-        self.I2C_BD_send_cmd3 = self.mcu.lookup_command(
-            "I2C_BD_send oid=%c data=%*s", cq=self.cmd_queue)
-        self.I2C_BD_receive_cmd3 = self.mcu.lookup_query_command(
-            "I2C_BD_receive oid=%c data=%*s",
-            "I2C_BD_receive_response oid=%c response=%*s", oid=self.oid, cq=self.cmd_queue)                
+    def build_config(self): 
+        if self.BD_sensor is not None:
+            self.I2C_BD_send_cmd3 = self.mcu.lookup_command(
+                "I2C_BD_send oid=%c data=%*s", cq=self.cmd_queue)
+            self.I2C_BD_receive_cmd3 = self.mcu.lookup_query_command(
+                "I2C_BD_receive oid=%c data=%*s",
+                "I2C_BD_receive_response oid=%c response=%*s", oid=self.oid, cq=self.cmd_queue)                
                                     
     def _handle_homing_move_begin(self, hmove):
         if self.mcu_probe in hmove.get_mcu_endstops():
@@ -134,16 +138,18 @@ class PrinterProbe:
         phoming = self.printer.lookup_object('homing')
         pos = toolhead.get_position()
         pos[2] = self.z_position
-        toolhead.wait_moves()
-        pr = self.I2C_BD_receive_cmd3.send([self.oid, "32"])
         
-        
-      #  print"params:%s" % pr['response']
-        intd=int(pr['response'])
-        strd=str(intd/100.0)   
-        pos[2]=intd/100.0
-        print"_probe0_x:%.3f,y:%.3f,z:%.3f"%(pos[0],pos[1],pos[2])
-        return pos[:3]
+        #for BD sensor
+        if self.I2C_BD_receive_cmd3 is not None:
+			toolhead.wait_moves()
+			pr = self.I2C_BD_receive_cmd3.send([self.oid, "32"])
+			intd=int(pr['response'])
+			strd=str(intd/100.0)
+			pos[2]=intd/100.0
+			self.gcode.respond_info("probe at %.3f,%.3f is z=%.6f"
+				% (pos[0], pos[1], pos[2]))
+			return pos[:3]
+			
         try:        
             epos = phoming.probing_move(self.mcu_probe, pos, speed)
         except self.printer.command_error as e:
@@ -248,7 +254,7 @@ class PrinterProbe:
             pos = self._probe(speed)
             positions.append(pos)
             # Retract
-            liftpos = [None, None, pos[2] + 0]
+            liftpos = [None, None, pos[2] + sample_retract_dist]
             self._move(liftpos, lift_speed)
         self.multi_probe_end()
         # Calculate maximum, minimum and average values
@@ -448,18 +454,17 @@ class ProbePointsHelper:
         if self.horizontal_move_z < self.probe_offsets[2]:
             raise gcmd.error("horizontal_move_z can't be less than"
                              " probe's z_offset")
-       # self.horizontal_move_z=1  
-        print"horizontal_move_z:%.2f"%self.horizontal_move_z
         probe.multi_probe_begin()
-     #   self.printer.lookup_object('toolhead').dwell(3)
-        probe.I2C_BD_send_cmd3.send([probe.oid, "1022"])
+        if probe.I2C_BD_send_cmd3 is not None:
+            probe.I2C_BD_send_cmd3.send([probe.oid, "1022"])
         while 1:
             done = self._move_next()
             if done:
                 break
             pos = probe.run_probe(gcmd)
             self.results.append(pos)
-        probe.I2C_BD_send_cmd3.send([probe.oid, "1018"])
+        if probe.I2C_BD_send_cmd3 is not None:    
+            probe.I2C_BD_send_cmd3.send([probe.oid, "1018"])
         probe.multi_probe_end()
     def _manual_probe_start(self):
         done = self._move_next()

@@ -68,14 +68,14 @@ class DisplayGroup:
         # Load all templates and store sorted by display position
         configs_by_name = {c.get_name(): c for c in data_configs}
         printer = config.get_printer()
-
-        # bed distance sensor,mark
+		# bed distance sensor,mark
+        self.BD_display = config.get('BD_display', None)       
         self.mcu = mcu.get_printer_mcu(printer, 'mcu')        
         self.oid = self.mcu.create_oid()
         self.cmd_queue = self.mcu.alloc_command_queue()
-        self.mcu.register_config_callback(self.build_config)
-        print"mcu:%s" % self.mcu
         self.I2C_BD_receive_cmd = None
+        self.mcu.register_config_callback(self.build_config)
+        
 
         
         gcode_macro = printer.load_object(config, 'gcode_macro')
@@ -85,10 +85,11 @@ class DisplayGroup:
             if c.get('text'):
                 template = gcode_macro.load_template(c, 'text')
                 self.data_items.append((row, col, template))
-    def build_config(self):      
-        self.I2C_BD_receive_cmd = self.mcu.lookup_query_command(
-            "I2C_BD_receive2 oid=%c data=%*s",
-            "I2C_BD_receive2_response oid=%c response=%*s", oid=self.oid, cq=self.cmd_queue)                
+    def build_config(self):
+        if self.BD_display is not None:
+            self.I2C_BD_receive_cmd = self.mcu.lookup_query_command(
+                "I2C_BD_receive2 oid=%c data=%*s",
+                "I2C_BD_receive2_response oid=%c response=%*s", oid=self.oid, cq=self.cmd_queue)                
     def show(self, display, templates, eventtime):
         context = self.data_items[0][2].create_template_context(eventtime)
         context['draw_progress_bar'] = display.draw_progress_bar
@@ -98,11 +99,11 @@ class DisplayGroup:
         for row, col, template in self.data_items:
             text = template.render(context)
             display.draw_text(row, col, text.replace('\n', ''), eventtime)
-        pr = self.I2C_BD_receive_cmd.send([self.oid, "32"])
-      #  print"params:%s" % pr['response']
-        intd=int(pr['response'])
-        strd=str(intd/100.0)
-        display.draw_text(3, 10,strd+"mm", eventtime)#luojin
+        if self.I2C_BD_receive_cmd is not None:
+            pr = self.I2C_BD_receive_cmd.send([self.oid, "32"])
+            intd=int(pr['response'])
+            strd=str(intd/100.0)
+            display.draw_text(3, 10,strd+"mm", eventtime)#mark 
         context.clear() # Remove circular references for better gc
 
 # Global cache of DisplayTemplate, DisplayGroup, and glyphs

@@ -171,6 +171,7 @@ encoder_pins: ^EXP2_3, ^EXP2_5
 click_pin: ^!EXP1_2
 #ser_pin: PA3
 #kill_pin: ^!EXP2_8
+BD_display:
 
 [output_pin beeper]
 pin: EXP1_1

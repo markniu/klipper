@@ -80,14 +80,7 @@ class MCU_I2C_BD:
         return self.mcu
     def get_command_queue(self):
         return self.cmd_queue    
-    def I2C_BD_send(self, data):
-      #  if self.I2C_BD_send_cmd is None:
-            # Send setup message via mcu initialization
-       #     data_msg = "".join(["%02x" % (x,) for x in data])
-       #     self.mcu.add_config_cmd("I2C_BD_send oid=%d data0=%u data1=%u" % (self.oid, data[0],data[1]), is_init=True)
-       #     print ("I2C_BD_send oid=%d data0=%u data1=%u" % (self.oid, data[0],data[1]))
-       #     return
-        print ("I2C_BD_send0 oid=%c %s " % (self.oid,data))    
+    def I2C_BD_send(self, data):  
         self.I2C_BD_send_cmd.send([self.oid, data])
     def I2C_BD_receive(self,  data):
         return self.I2C_BD_receive_cmd.send([self.oid, data])
@@ -274,14 +267,11 @@ class BDsensorEndstopWrapper:
             gcmd.respond_raw(strd)
         self.bd_sensor.I2C_BD_send("1018")#1018               
     def _handle_mcu_identify(self):
-        print("_handle_mcu_identify")
         kin = self.printer.lookup_object('toolhead').get_kinematics()
         for stepper in kin.get_steppers():
             if stepper.is_active_axis('z'):
                 self.add_stepper(stepper)
     def raise_probe(self):
-        print("raise_probe")
-        
         toolhead = self.printer.lookup_object('toolhead')
         start_pos = toolhead.get_position()
         self.deactivate_gcode.run_gcode_from_command()
@@ -289,7 +279,6 @@ class BDsensorEndstopWrapper:
             raise self.printer.command_error(
                 "Toolhead moved during probe activate_gcode script")
     def lower_probe(self):
-        print("lower_probe")
         toolhead = self.printer.lookup_object('toolhead')
         start_pos = toolhead.get_position()
         self.activate_gcode.run_gcode_from_command()
@@ -297,29 +286,24 @@ class BDsensorEndstopWrapper:
             raise self.printer.command_error(
                 "Toolhead moved during probe deactivate_gcode script")
     def multi_probe_begin(self):
-        print("multi_probe_begin")
         if self.stow_on_each_sample:
             return
         self.multi = 'FIRST'
     def multi_probe_end(self):
-        print("multi_probe_end")
         if self.stow_on_each_sample:
             return
         self.raise_probe()
         self.multi = 'OFF'
     def probe_prepare(self, hmove):
-        print("probe_prepare")
        # self.bd_sensor.I2C_BD_send("890")
         if self.multi == 'OFF' or self.multi == 'FIRST':
             self.lower_probe()
             if self.multi == 'FIRST':
                 self.multi = 'ON'
     def probe_finish(self, hmove):
-        print("probe_finish")
         if self.multi == 'OFF':
             self.raise_probe()
     def get_position_endstop(self):
-        print("get_position_endstop")
         return self.position_endstop
 
    
