@@ -316,7 +316,7 @@ stepper_oid_lookup(uint8_t oid);
 void adust_Z_live(uint16_t sensor_z)
 {
    // BD_Data
-    if(step_adj[0].zoid==0)
+/*    if(step_adj[0].zoid==0)
        return;
 	struct stepper *s = stepper_oid_lookup(step_adj[0].zoid);
      
@@ -357,7 +357,7 @@ void adust_Z_live(uint16_t sensor_z)
 		
 	}
 	gpio_out_write(s->dir_pin, old_dir);
-	
+	*/
 }
 
 
@@ -391,9 +391,9 @@ void report_x_probe(uint16_t sensor_z)
 //	memset(data,0,16);
 	//int interD_back=stepx_probe.max_x+x_count*inter_dis;
 	//output("report_x_probe mcuoid=%c interD=%c", oid_g,interD);
-	if(cur_stp<=(stepx_probe.min_x))
+	if(cur_stp<=(stepx_probe.min_x-stepx_probe.steps_per_mm*2))
 		stepx_probe.x_count=0;
-	else if(cur_stp>=(stepx_probe.max_x))
+	else if(cur_stp>=(stepx_probe.max_x+stepx_probe.steps_per_mm*2))
 		stepx_probe.x_count=stepx_probe.points-1;
 	if(dir==1)	
 	{
@@ -436,8 +436,8 @@ void report_x_probe(uint16_t sensor_z)
 		if((cur_stp<=interD)&&((cur_stp_old>interD)||(stepx_probe.x_count==(stepx_probe.points-1))))
 		{
 			
-			///output("report_x_probe mcuoid=%c cur_stp_old1=%c", oid_g,cur_stp_old);			
-			//output("report_x_probe mcuoid=%c cur_mm1=%c", oid_g,cur_stp);
+			output("report_x_probe mcuoid=%c cur_stp_old1=%c", oid_g,cur_stp_old);			
+			output("report_x_probe mcuoid=%c cur_mm1=%c", oid_g,cur_stp);
 			//stepx_probe.x_data[stepx_probe.x_count]=BD_Data;
 			memset(data,0,16);
 			len=INT_to_String(BD_Data,data);
@@ -599,9 +599,9 @@ command_Z_Move_Live(uint32_t *args)
 		struct stepper *s = stepper_oid_lookup(j);
 	    uint32_t cur_stp=stepper_get_position(s);
 		stepx_probe.steps_at_zero=cur_stp-(stepx_probe.steps_at_zero*stepx_probe.steps_per_mm)/1000;
-		output("Z_Move_L mcuoid=%c zero=%c", oid,stepx_probe.steps_at_zero);
-		stepx_probe.min_x=(stepx_probe.min_x+0.02)*stepx_probe.steps_per_mm;
-		stepx_probe.max_x=(stepx_probe.max_x-0.02)*stepx_probe.steps_per_mm;
+		stepx_probe.min_x=stepx_probe.min_x*stepx_probe.steps_per_mm+stepx_probe.steps_per_mm;
+		stepx_probe.max_x=stepx_probe.max_x*stepx_probe.steps_per_mm-stepx_probe.steps_per_mm;
+		output("Z_Move_L mcuoid=%c zero=%c", oid,stepx_probe.max_x);
 		stepx_probe.x_count=0;
 	}
 	else if(tmp[0]=='d')

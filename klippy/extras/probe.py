@@ -463,12 +463,12 @@ class ProbePointsHelper:
             # Use full speed to first probe position
             speed = self.speed
         toolhead.manual_move([None, None, self.horizontal_move_z], speed)
+        probe = self.printer.lookup_object('probe', None)
         # Check if done probing
         if len(self.results) >= len(self.probe_points):
             toolhead.get_last_move_time()
             toolhead = self.printer.lookup_object('toolhead')
-            toolhead.wait_moves()
-            probe = self.printer.lookup_object('probe', None)
+            toolhead.wait_moves()           
             print(probe.mcu_probe.results)
             for i in range(len(self.results)):
                 self.results[i][2]=probe.mcu_probe.results[i]/100.0
@@ -483,12 +483,7 @@ class ProbePointsHelper:
             nextpos[0] -= self.probe_offsets[0]
             nextpos[1] -= self.probe_offsets[1]
         toolhead.manual_move(nextpos, self.speed)
-        if not self.results:
-            toolhead = self.printer.lookup_object('toolhead')
-            toolhead.wait_moves()
-            
-            
-            
+ 
         p_results=[0.0,0.0,0.0]
         p_results[0]=nextpos[0]
         p_results[1]=nextpos[1]
@@ -522,6 +517,12 @@ class ProbePointsHelper:
         probe.multi_probe_begin()
         #if probe.I2C_BD_send_cmd3 is not None:
         #    probe.I2C_BD_send_cmd3.send([probe.oid, "1022".encode('utf-8')])
+        self._move_next()
+        toolhead = self.printer.lookup_object('toolhead')
+        toolhead.wait_moves()
+        probe.mcu_probe.results=[]
+        probe.mcu_probe.Z_Move_Live_cmd.send([probe.mcu_probe.oid, ("d 0\0" ).encode('utf-8')])
+        
         
         while 1:
             done = self._move_next()

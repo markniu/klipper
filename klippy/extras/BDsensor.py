@@ -124,6 +124,7 @@ class BDsensorEndstopWrapper:
         self.gcode_que=None
         self.zl=0
         self.bd_value=10.24
+        self.x_offset = config.getfloat('x_offset', 0.)
         self.results = []
         # multi probes state
         self.multi = 'OFF'
@@ -139,11 +140,7 @@ class BDsensorEndstopWrapper:
             self.bd_update_event)
         self.reactor.update_timer(self.bd_update_timer, self.reactor.NOW)
         print(config.getfloat('speed', 5.))
-        bedmesh = self.printer.lookup_object('bed_mesh', None)
-        self.min_x, min_y = bedmesh.bmc.orig_config['mesh_min']
-        self.max_x, max_y = bedmesh.bmc.orig_config['mesh_max']
-        self.x_count=bedmesh.bmc.orig_config['x_count']
-        print("==%.f %.f  %.f"%(self.min_x,self.max_x,self.x_count))
+       
 
     def z_live_adjust(self):
         print ("z_live_adjust %d" % self.adjust_range)
@@ -244,19 +241,19 @@ class BDsensorEndstopWrapper:
         
 
     def _handle_BD_Update(self, params): 
-        print("_handle_BD_Update :%s " %params['distance_val'])
-        #try:
-        #    self.bd_value=int(params['distance_val'])/100.00
-        #except ValueError as e:
-       #     pass
+        #print("_handle_BD_Update :%s " %params['distance_val'])
+        try:
+            self.bd_value=int(params['distance_val'])/100.00
+        except ValueError as e:
+            pass
         #else:
             #print (" handle self.bd_value %.4f" % self.bd_value)
     def _handle_probe_Update(self, params): 
         print("_handle_probe_Update:%s " %params['distance_val'])
         #print ("split :%s " %params['distance_val'].split(b' '))
         count=int(params['distance_val'].split(b' ')[1])
-        if count == self.old_count:
-            return
+        print(len(self.results))
+
         self.old_count=count
         print ("split:%s " %params['distance_val'].split(b' '))
         try:
@@ -329,17 +326,16 @@ class BDsensorEndstopWrapper:
             accel = 2000#gcmd.get_float('ACCEL', 0., minval=0.)
             self.distance=0.1
             for stepper in kin.get_steppers():
-                if stepper.is_active_axis('z'):
-                    self._force_enable(stepper)
-                    self.toolhead.wait_moves()
+                #if stepper.is_active_axis('z'):
+                self._force_enable(stepper)
+                self.toolhead.wait_moves()
             ncount=0
             print("process_M102 1")
             while 1:
-                self.toolhead.dwell(0.1)
                 self.bd_sensor.I2C_BD_send(str(ncount))
-                self.toolhead.dwell(0.1)
-                #self.bd_sensor.I2C_BD_send(str(ncount))
-                #toolhead.dwell(0.5)
+                self.bd_sensor.I2C_BD_send(str(ncount))
+                self.bd_sensor.I2C_BD_send(str(ncount))
+                self.toolhead.dwell(0.2)
                 for stepper in kin.get_steppers():
                     if stepper.is_active_axis('z'):
                         self._force_enable(stepper)
@@ -395,10 +391,16 @@ class BDsensorEndstopWrapper:
             gcmd.respond_raw(strd)
        
         elif  CMD_BD ==-7:# gcode M102 Sx 
-            self.adjust_range = CMD_BD
+            
             #self.bd_sensor.I2C_BD_send("1022")
             step_time=100
             self.toolhead = self.printer.lookup_object('toolhead')
+            bedmesh = self.printer.lookup_object('bed_mesh', None)
+            self.min_x, min_y = bedmesh.bmc.orig_config['mesh_min']
+            self.max_x, max_y = bedmesh.bmc.orig_config['mesh_max']
+            self.x_count=bedmesh.bmc.orig_config['x_count']
+            print("==%.f %.f  %.f"%(self.min_x,self.max_x,self.x_count))
+        
             kin = self.toolhead.get_kinematics()
             for stepper in kin.get_steppers():
                 if stepper.is_active_axis('x'):   
@@ -413,14 +415,14 @@ class BDsensorEndstopWrapper:
                     bedmesh = self.printer.lookup_object('bed_mesh', None)
                     #bedmesh.bmc.orig_config['mesh_min']
                     x=x*1000
-                    pr=self.Z_Move_Live_cmd.send([self.oid, ("7 %d\0" % self.min_x ).encode('utf-8')])
+                    pr=self.Z_Move_Live_cmd.send([self.oid, ("7 %d\0" % (self.min_x-self.x_offset)).encode('utf-8')])
                     pr=self.Z_Move_Live_cmd.send([self.oid, ("8 %d\0" % self.max_x).encode('utf-8')])
                     pr=self.Z_Move_Live_cmd.send([self.oid, ("9 %d\0" % self.x_count).encode('utf-8')])
                     pr=self.Z_Move_Live_cmd.send([self.oid, ("a %d\0"   % x).encode('utf-8')])
                     pr=self.Z_Move_Live_cmd.send([self.oid, ("b %d\0"  % steps_per_mm).encode('utf-8')])
                     pr=self.Z_Move_Live_cmd.send([self.oid, ("c %u\0"  % stepper.get_oid()).encode('utf-8')])
                     pr=self.Z_Move_Live_cmd.send([self.oid, ("d 0\0" ).encode('utf-8')])
-                    
+                    self.results=[]
                     print("get:%s " %pr['return_set'])
                     #print(cmd_fmt)
             #self.bd_sensor.I2C_BD_send("1018")#1018// finish reading
