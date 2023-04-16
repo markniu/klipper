@@ -471,7 +471,7 @@ class ProbePointsHelper:
             toolhead.wait_moves()           
             print(probe.mcu_probe.results)
             for i in range(len(self.results)):
-                self.results[i][2]=probe.mcu_probe.results[i]/100.0
+                self.results[i][2]=self.horizontal_move_z-(probe.mcu_probe.results[i]/100.0)
             print(self.results)
             res = self.finalize_callback(self.probe_offsets, self.results)
             if res != "retry":
@@ -483,7 +483,7 @@ class ProbePointsHelper:
             nextpos[0] -= self.probe_offsets[0]
             nextpos[1] -= self.probe_offsets[1]
         toolhead.manual_move(nextpos, self.speed)
- 
+
         p_results=[0.0,0.0,0.0]
         p_results[0]=nextpos[0]
         p_results[1]=nextpos[1]
