@@ -174,8 +174,8 @@ class PrinterProbe:
                 last_pos = int(params['pos'])
                 params = steppery._get_position_cmd.send([steppery._oid])
                 last_pos =last_pos + int(params['pos'])
-                if (last_pos == self.old_pos) and
-                    (self.old_old_pos!=self.old_pos):
+                if (last_pos == self.old_pos) and\
+                   (self.old_old_pos!=self.old_pos):
                     time1 = datetime.datetime.now()
                     print(time1)
                     print("od_pos:%d,%d" % (self.old_pos,self.old_old_pos))
@@ -470,8 +470,8 @@ class ProbePointsHelper:
             toolhead.wait_moves()
             print(probe.mcu_probe.results)
             for i in range(len(self.results)):
-                self.results[i][2]=self.horizontal_move_z-
-                    (probe.mcu_probe.results[i]/100.0)
+                self.results[i][2]=self.horizontal_move_z-\
+                (probe.mcu_probe.results[i]/100.0)
             print(self.results)
             res = self.finalize_callback(self.probe_offsets, self.results)
             if res != "retry":
