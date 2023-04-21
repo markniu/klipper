@@ -86,7 +86,7 @@ class SafeZHoming:
             # Move XY back to previous positions
             if self.move_to_previous:
                 toolhead.manual_move(prevpos[:2], self.speed)
-        self.gcode.run_script_from_command("M102 S-7")    
+        self.gcode.run_script_from_command("M102 S-7")
 
 def load_config(config):
     return SafeZHoming(config)

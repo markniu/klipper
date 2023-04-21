@@ -29,9 +29,8 @@ class PrinterProbe:
         self.multi_probe_pending = False
         self.last_state = False
         self.last_z_result = 0.
-        
-        self.old_pos=0    
-        self.old_old_pos=1;
+        self.old_pos=0
+        self.old_old_pos=1
         self.gcode_move = self.printer.load_object(config, "gcode_move")
         # Infer Z position to move to during a probe
         if config.has_section('stepper_z'):
@@ -152,7 +151,7 @@ class PrinterProbe:
            # toolhead.wait_moves()
             time1 = datetime.datetime.now()
             #print(time1)
-            #print("od_pos:%d,%d" % (self.old_pos,self.old_old_pos))          
+            #print("od_pos:%d,%d" % (self.old_pos,self.old_old_pos))
             self.old_old_pos=self.old_pos
             pr = self.I2C_BD_receive_cmd3.send([self.oid, "32".encode('utf-8')])
             intd=int(pr['response'])
@@ -169,19 +168,20 @@ class PrinterProbe:
                     stepperx=stepper
                 if stepper.is_active_axis('y'):
                     steppery=stepper
-            while 1:               
+            while 1:
                 #toolhead.dwell(0.00001)
                 params = stepperx._get_position_cmd.send([stepperx._oid])
                 last_pos = int(params['pos'])
                 params = steppery._get_position_cmd.send([steppery._oid])
                 last_pos =last_pos + int(params['pos'])
-                    
-                if (last_pos == self.old_pos) and (self.old_old_pos!=self.old_pos):
+                if (last_pos == self.old_pos) and
+                    (self.old_old_pos!=self.old_pos):
                     time1 = datetime.datetime.now()
                     print(time1)
-                    print("od_pos:%d,%d" % (self.old_pos,self.old_old_pos))          
+                    print("od_pos:%d,%d" % (self.old_pos,self.old_old_pos))
                     self.old_old_pos=self.old_pos
-                    pr = self.I2C_BD_receive_cmd3.send([self.oid, "32".encode('utf-8')])
+                    pr = self.I2C_BD_receive_cmd3.send(
+                        [self.oid, "32".encode('utf-8')])
                     intd=int(pr['response'])
                     strd=str(intd/100.0)
                     pos[2]=self.horizontal_move_z-(intd/100.0)
@@ -438,7 +438,6 @@ class ProbePointsHelper:
         self.default_horizontal_move_z = def_move_z
         self.horizontal_move_z=def_move_z
         self.speed = config.getfloat('speed', 50., above=0.)
-        
         self.use_offsets = False
         # Internal probing state
         self.lift_speed = self.speed
@@ -468,10 +467,11 @@ class ProbePointsHelper:
         if len(self.results) >= len(self.probe_points):
             toolhead.get_last_move_time()
             toolhead = self.printer.lookup_object('toolhead')
-            toolhead.wait_moves()           
+            toolhead.wait_moves()
             print(probe.mcu_probe.results)
             for i in range(len(self.results)):
-                self.results[i][2]=self.horizontal_move_z-(probe.mcu_probe.results[i]/100.0)
+                self.results[i][2]=self.horizontal_move_z-
+                    (probe.mcu_probe.results[i]/100.0)
             print(self.results)
             res = self.finalize_callback(self.probe_offsets, self.results)
             if res != "retry":
@@ -489,9 +489,7 @@ class ProbePointsHelper:
         p_results[1]=nextpos[1]
         p_results[2]=0.02
         self.results.append(p_results)
-        
         return False
-        
     def start_probe(self, gcmd):
         manual_probe.verify_no_manual_probe(self.printer)
         #self.gcode.run_script_from_command("M102 S0")
@@ -521,16 +519,14 @@ class ProbePointsHelper:
         toolhead = self.printer.lookup_object('toolhead')
         toolhead.wait_moves()
         probe.mcu_probe.results=[]
-        probe.mcu_probe.Z_Move_Live_cmd.send([probe.mcu_probe.oid, ("d 0\0" ).encode('utf-8')])
-        
-        
+        probe.mcu_probe.Z_Move_Live_cmd.send(
+            [probe.mcu_probe.oid, ("d 0\0" ).encode('utf-8')])
         while 1:
             done = self._move_next()
             if done:
                 break
             #pos = probe.run_probe(gcmd)
             #self.results.append(pos)
-        
         if probe.I2C_BD_send_cmd3 is not None:
             probe.I2C_BD_send_cmd3.send([probe.oid, "1018".encode('utf-8')])
         probe.multi_probe_end()
