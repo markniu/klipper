@@ -74,7 +74,7 @@ struct step_adjust{
 
 struct step_adjust step_adj[3];//x,y,z
 
-struct step_probe{
+struct _step_probe{
     int min_x;
     int max_x;
     int points;
@@ -82,11 +82,22 @@ struct step_probe{
     int steps_per_mm;
     int xoid;//oid for x stepper
     int x_count;
+    int kinematics;//0:cartesian,1:corexy,2:delta
     int x_data[64];
 };
 
-struct step_probe stepx_probe;//x,y,z
+struct _step_probe stepx_probe;//x
 
+struct _step_probey{
+    int min_x;
+    int max_x;
+    int steps_at_zero;
+    int steps_per_mm;
+    int yoid;//oid for y stepper
+
+};
+
+struct _step_probey stepy_probe;//y
 
 
 
@@ -109,6 +120,9 @@ int BD_i2c_init(uint32_t _sda,uint32_t _scl,uint32_t delays)
     gpio_out_write(sda_gpio, 1);
     gpio_out_write(scl_gpio, 1);
     step_adj[0].zoid=0;
+
+    stepx_probe.xoid=0;
+    stepy_probe.yoid=0;
     return 1;
 }
 
@@ -233,8 +247,8 @@ uint16_t BD_i2c_read(void)
         b=1024;
     BD_read_lock=0;
     //sda_gpio_in=gpio_in_setup(sda_pin, 1);
-    //BD_Data=gpio_in_read(sda_gpio_in);
-    //return BD_Data;
+    BD_Data=gpio_in_read(sda_gpio_in);
+    return BD_Data;
     return b;
 }
 
@@ -365,6 +379,13 @@ void report_x_probe(uint16_t sensor_z)
        return;
     struct stepper *s = stepper_oid_lookup(stepx_probe.xoid);
     int cur_stp=stepper_get_position(s)-stepx_probe.steps_at_zero;
+    int cur_stp_y=0;
+    //// for corexy printer
+    if(stepx_probe.kinematics==1 && stepy_probe.yoid){
+        struct stepper *ss = stepper_oid_lookup(stepy_probe.yoid);
+        cur_stp_y=stepper_get_position(ss)-stepy_probe.steps_at_zero;
+        cur_stp=(cur_stp+cur_stp_y)/2;
+    }
     static int cur_stp_old=0,dir=1;
     int len=0;
     int inter_dis=(stepx_probe.max_x-stepx_probe.min_x)/(stepx_probe.points-1);
@@ -385,7 +406,7 @@ void report_x_probe(uint16_t sensor_z)
     uint8_t data[16];
 //    memset(data,0,16);
     //int interD_back=stepx_probe.max_x+x_count*inter_dis;
-    //output("report_x_probe mcuoid=%c interD=%c", oid_g,interD);
+    //output("report_x_probe mcuoid=%c cur_stp=%c", oid_g,cur_stp);
     if(cur_stp<=(stepx_probe.min_x-stepx_probe.steps_per_mm*2))
         stepx_probe.x_count=0;
     else if(cur_stp>=(stepx_probe.max_x+stepx_probe.steps_per_mm*2))
@@ -597,6 +618,27 @@ command_Z_Move_Live(uint32_t *args)
     else if(tmp[0]=='d')
     {
         stepx_probe.x_count=j;
+    }
+    else if(tmp[0]=='e')
+    {
+        stepx_probe.kinematics=j;
+    }
+    ///////////////////// motor y
+    else if(tmp[0]=='f')
+    {
+        stepy_probe.steps_at_zero=j;
+    }
+    else if(tmp[0]=='g')
+    {
+        stepy_probe.steps_per_mm=j;
+    }
+    else if(tmp[0]=='h')
+    {
+        stepy_probe.yoid=j;
+        struct stepper *s = stepper_oid_lookup(j);
+        uint32_t cur_stp=stepper_get_position(s);
+        stepy_probe.steps_at_zero=cur_stp-
+            (stepy_probe.steps_at_zero*stepy_probe.steps_per_mm)/1000;
     }
 
     output("Z_Move_L mcuoid=%c j=%c", oid,j);
