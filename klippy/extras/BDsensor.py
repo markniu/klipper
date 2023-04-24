@@ -110,7 +110,8 @@ class BDsensorEndstopWrapper:
         # Register M102 commands
         self.gcode = self.printer.lookup_object('gcode')
         self.gcode.register_command('M102', self.cmd_M102)
-        self.BD_display = config.get('BD_display', None)
+        self.no_stop_probe = config.get('no_stop_probe', None)
+        print(self.no_stop_probe)
         self.I2C_BD_receive_cmd2 = None
         self.gcode_move = self.printer.load_object(config, "gcode_move")
         self.gcode = self.printer.lookup_object('gcode')
@@ -198,21 +199,17 @@ class BDsensorEndstopWrapper:
            #self.toolhead.manual_move([None, None, ajust_len], speed)
 
     def bd_update_event(self, eventtime):
-        # schedule the next call first
-        #scheduler.enter(1, 1, self.BD_loop, (scheduler,))
-        #Timer(1, self.BD_loop, ()).start()
-       # print ("bd_update_event %d" % self.adjust_range)
-        self.toolhead = self.printer.lookup_object('toolhead')
         if self.gcode_que is not None:
             self.process_M102(self.gcode_que)
             self.gcode_que=None
         strd=str(self.bd_value)+"mm"
         status_dis=self.printer.lookup_object('display_status')
-        if self.bd_value == 10.24:
-            strd="BDs:ConnectErr"
-        if self.bd_value == 3.9:
-            strd="BDs:Out Range"
-        status_dis.message=strd
+        if status_dis is None:
+            if self.bd_value == 10.24:
+                strd="BDs:ConnectErr"
+            if self.bd_value == 3.9:
+                strd="BDs:Out Range"
+            status_dis.message=strd
         #self.z_live_adjust()
         return eventtime + BD_TIMER
 

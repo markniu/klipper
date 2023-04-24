@@ -247,8 +247,8 @@ uint16_t BD_i2c_read(void)
         b=1024;
     BD_read_lock=0;
     //sda_gpio_in=gpio_in_setup(sda_pin, 1);
-    BD_Data=gpio_in_read(sda_gpio_in);
-    return BD_Data;
+    //BD_Data=gpio_in_read(sda_gpio_in);
+    //return BD_Data;
     return b;
 }
 
