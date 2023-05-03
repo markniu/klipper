@@ -204,7 +204,7 @@ class BDsensorEndstopWrapper:
             self.gcode_que=None
         strd=str(self.bd_value)+"mm"
         status_dis=self.printer.lookup_object('display_status')
-        if status_dis is None:
+        if status_dis is not None:
             if self.bd_value == 10.24:
                 strd="BDs:ConnectErr"
             if self.bd_value == 3.9:
