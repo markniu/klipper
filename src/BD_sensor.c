@@ -246,9 +246,9 @@ uint16_t BD_i2c_read(void)
     if(b>1024)
         b=1024;
     BD_read_lock=0;
-    //sda_gpio_in=gpio_in_setup(sda_pin, 1);
-    //BD_Data=gpio_in_read(sda_gpio_in);
-    //return BD_Data;
+    sda_gpio_in=gpio_in_setup(sda_pin, 1);
+    BD_Data=gpio_in_read(sda_gpio_in);
+    return BD_Data;
     return b;
 }
 
@@ -416,9 +416,9 @@ void report_x_probe(uint16_t sensor_z)
         if((cur_stp>=interD)&&((cur_stp_old<interD)||(stepx_probe.x_count==0)))
         {
             //stepx_probe.x_data[stepx_probe.x_count]=BD_Data;
-            output("report_x_probe mcuoid=%c cur_stp_old0=%c",
-            oid_g,cur_stp_old);
-            output("report_x_probe mcuoid=%c cur_mm0=%c", oid_g,cur_stp);
+           // output("report_x_probe mcuoid=%c cur_stp_old0=%c",
+           // oid_g,cur_stp_old);
+           // output("report_x_probe mcuoid=%c cur_mm0=%c", oid_g,cur_stp);
             memset(data,0,16);
             len=INT_to_String(BD_Data,data);
             data[len++]=' ';
@@ -449,9 +449,9 @@ void report_x_probe(uint16_t sensor_z)
             ||(stepx_probe.x_count==(stepx_probe.points-1))))
         {
 
-            output("report_x_probe mcuoid=%c cur_stp_old1=%c",
-                oid_g,cur_stp_old);
-            output("report_x_probe mcuoid=%c cur_mm1=%c", oid_g,cur_stp);
+          //  output("report_x_probe mcuoid=%c cur_stp_old1=%c",
+          //      oid_g,cur_stp_old);
+          //  output("report_x_probe mcuoid=%c cur_mm1=%c", oid_g,cur_stp);
             //stepx_probe.x_data[stepx_probe.x_count]=BD_Data;
             memset(data,0,16);
             len=INT_to_String(BD_Data,data);
@@ -612,7 +612,7 @@ command_Z_Move_Live(uint32_t *args)
             +stepx_probe.steps_per_mm;
         stepx_probe.max_x=stepx_probe.max_x*stepx_probe.steps_per_mm
             -stepx_probe.steps_per_mm;
-        output("Z_Move_L mcuoid=%c zero=%c", oid,stepx_probe.max_x);
+      //  output("Z_Move_L mcuoid=%c zero=%c", oid,stepx_probe.max_x);
         stepx_probe.x_count=0;
     }
     else if(tmp[0]=='d')
@@ -641,7 +641,7 @@ command_Z_Move_Live(uint32_t *args)
             (stepy_probe.steps_at_zero*stepy_probe.steps_per_mm)/1000;
     }
 
-    output("Z_Move_L mcuoid=%c j=%c", oid,j);
+   // output("Z_Move_L mcuoid=%c j=%c", oid,j);
 
     sendf("Z_Move_Live_response oid=%c return_set=%*s", oid,i,(char *)args[2]);
 }
