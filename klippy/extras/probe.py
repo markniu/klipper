@@ -425,19 +425,22 @@ class ProbePointsHelper:
         # Check if done probing
         if len(self.results) >= len(self.probe_points):
             toolhead.get_last_move_time()
-            if probe.mcu_probe.no_stop_probe is not None:
-                toolhead = self.printer.lookup_object('toolhead')
-                toolhead.wait_moves()
-                probe = self.printer.lookup_object('probe', None)
-                print(probe.mcu_probe.results)
-                for i in range(len(self.results)):
-                    self.results[i][2]=self.horizontal_move_z-\
-                      (probe.mcu_probe.results[i]/100.0)
-                    self.gcode.respond_info("probe at %.3f,%.3f is z=%.6f"
+            try:
+                if probe.mcu_probe.no_stop_probe is not None:
+                    toolhead = self.printer.lookup_object('toolhead')
+                    toolhead.wait_moves()
+                    probe = self.printer.lookup_object('probe', None)
+                    print(probe.mcu_probe.results)
+                    for i in range(len(self.results)):
+                        self.results[i][2]=self.horizontal_move_z-\
+                          (probe.mcu_probe.results[i]/100.0)
+                        self.gcode.respond_info("probe at %.3f,%.3f is z=%.6f"
                                     % (self.results[i][0],
                                     self.results[i][1],
                                     self.results[i][2]))
-                print(self.results)
+                    print(self.results)
+            except AttributeError as e:
+                pass
             res = self.finalize_callback(self.probe_offsets, self.results)
             if res != "retry":
                 return True
@@ -448,12 +451,15 @@ class ProbePointsHelper:
             nextpos[0] -= self.probe_offsets[0]
             nextpos[1] -= self.probe_offsets[1]
         toolhead.manual_move(nextpos, self.speed)
-        if probe.mcu_probe.no_stop_probe is not None:
-            p_results=[0.0,0.0,0.0]
-            p_results[0]=nextpos[0]
-            p_results[1]=nextpos[1]
-            p_results[2]=0.02
-            self.results.append(p_results)
+        try:
+            if probe.mcu_probe.no_stop_probe is not None:
+                p_results=[0.0,0.0,0.0]
+                p_results[0]=nextpos[0]
+                p_results[1]=nextpos[1]
+                p_results[2]=0.02
+                self.results.append(p_results)
+        except AttributeError as e:
+            pass
         return False
     def start_probe(self, gcmd):
         manual_probe.verify_no_manual_probe(self.printer)
@@ -477,26 +483,34 @@ class ProbePointsHelper:
             raise gcmd.error("horizontal_move_z can't be less than"
                              " probe's z_offset")
         probe.multi_probe_begin()
-        if probe.mcu_probe.no_stop_probe is not None:
-            self._move_next()
-            toolhead = self.printer.lookup_object('toolhead')
-            toolhead.wait_moves()
-            pos = toolhead.get_position()
-            print(pos[2])
-            probe.mcu_probe.results=[]
-            probe.mcu_probe.Z_Move_Live_cmd.send(
-                [probe.mcu_probe.oid, ("d 0\0" ).encode('utf-8')])
-        else:
-            if probe.I2C_BD_send_cmd3 is not None:
-                probe.I2C_BD_send_cmd3.send([probe.oid,
-                   "1022".encode('utf-8')])
+        try:
+            if probe.mcu_probe.no_stop_probe is not None:
+                self._move_next()
+                toolhead = self.printer.lookup_object('toolhead')
+                toolhead.wait_moves()
+                pos = toolhead.get_position()
+                print(pos[2])
+                probe.mcu_probe.results=[]
+                probe.mcu_probe.Z_Move_Live_cmd.send(
+                    [probe.mcu_probe.oid, ("d 0\0" ).encode('utf-8')])
+            else:
+                if probe.I2C_BD_send_cmd3 is not None:
+                    probe.I2C_BD_send_cmd3.send([probe.oid,
+                       "1022".encode('utf-8')])
+        except AttributeError as e:
+            pass
+        
         while 1:
             done = self._move_next()
             if done:
                 break
-            if probe.mcu_probe.no_stop_probe is None:
-                pos = probe.run_probe(gcmd)
-                self.results.append(pos)
+            try:
+                if probe.mcu_probe.no_stop_probe is not None:
+                    continue
+            except AttributeError as e:
+                pass
+            pos = probe.run_probe(gcmd)
+            self.results.append(pos)
         if probe.I2C_BD_send_cmd3 is not None:
             probe.I2C_BD_send_cmd3.send([probe.oid, "1018".encode('utf-8')])
         probe.multi_probe_end()
