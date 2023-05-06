@@ -388,12 +388,13 @@ class BDsensorEndstopWrapper:
             x_count=bedmesh.bmc.orig_config['x_count']
             kin = self.toolhead.get_kinematics()
             for stepper in kin.get_steppers():
-                if stepper.is_active_axis('x'):
+                if stepper.get_name()=='stepper_x':
                     steps_per_mm = 1.0/stepper.get_step_dist()
                     x=self.gcode_move.last_position[0]
                     stepper._query_mcu_position()
-                    print("x ==%.f %.f  %.f steps_per_mm:%d"%
-                        (self.min_x,self.max_x,x_count,steps_per_mm))
+                    print("x ==%.f %.f  %.f steps_per_mm:%d,%u"%
+                        (self.min_x,self.max_x,x_count,steps_per_mm,
+                        stepper.get_oid()))
                     print("kinematics:%s" %
                         self.config.getsection('printer').get('kinematics'))
                     invert_dir, orig_invert_dir = stepper.get_dir_inverted()
@@ -427,11 +428,11 @@ class BDsensorEndstopWrapper:
 
                     self.results=[]
                     print("xget:%s " %pr['return_set'])
-                if stepper.is_active_axis('y'):
+                if stepper.get_name()=='stepper_y':
                     steps_per_mm = 1.0/stepper.get_step_dist()
                     y=self.gcode_move.last_position[1]
                     #stepper._query_mcu_position()
-                    print("y steps_per_mm:%d"%(steps_per_mm))
+                    print("y per_mm:%d,%u"%(steps_per_mm,stepper.get_oid()))
                     #invert_dir, orig_invert_dir = stepper.get_dir_inverted()
                     #bedmesh = self.printer.lookup_object('bed_mesh', None)
                     #bedmesh.bmc.orig_config['mesh_min']
